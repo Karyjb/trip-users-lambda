@@ -38,6 +38,7 @@ export const handler = async (event, context) => {
     console.log("event: ", event);
     console.log(event.routeKey);
     const requestJSON = JSON.parse(event.body);
+    console.log("requestJSON: ", requestJSON);
     switch (event.routeKey) {
       case "DELETE /items/{id}":
         console.log("DELETE /items/{id}");
@@ -69,13 +70,12 @@ export const handler = async (event, context) => {
         body = body.Items;
         break;
       case "UPDATE /items/{id}":
-        console.log("requestJSON: ", requestJSON);
         //let name = requestJSON.name;
-
+        console.log("UPDATE1");
         let params = {
           TableName: tableName,
           Key: {
-            id: event.requestJSON.id,
+            id: event.pathParameters.id,
           },
           Projectionexpression: "#n",
           ExpressionAttributeNames: {
@@ -96,7 +96,9 @@ export const handler = async (event, context) => {
             ":pwd": requestJSON.pwd,
           },
         };
+      
         console.log("params", params);
+        console.log("update 2");
         await dynamo.send(new UpdateCommand(params));
         body = `UPDATE /items ${params.Key.id}`;
         break;
@@ -115,6 +117,7 @@ export const handler = async (event, context) => {
             phone: requestJSON.phone,
             pwd: requestJSON.pwd,
             rh: requestJSON.rh,
+            //idViaje: requestJSON.idViaje,
           },
         };
         console.log("itemDynamo", itemDynamo);
@@ -122,17 +125,17 @@ export const handler = async (event, context) => {
         body = `Put item ${itemDynamo.Item.id}`;
         break;
       case "POST /login":
-        login(mail, pwd);
+        login(requestJSON.mail, requestJSON.pwd);
 
-        break;      
+        break;
       default:
         throw new Error(`Unsupported route: "${event.routeKey}"`);
     }
 
     async function login(mail, pwd) {
-      let User = new User();
-      User = await getUser(mail);
-      if (mail == User.mail & pwd == User.pwd) {
+      let user = new User();
+      user = await getUser(mail);
+      if (pwd == user.pwd) {
         return console.log("login ok");
       } else {
         return "bad login";
@@ -143,7 +146,7 @@ export const handler = async (event, context) => {
       let keyDynamo = {
         TableName: tableName,
         Key: {
-          mail: event.pathParameters.mail,
+          mail: mail,
         },
       };
       console.log("keyDynamo", keyDynamo);
